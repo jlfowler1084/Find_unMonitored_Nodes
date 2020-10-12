@@ -1,0 +1,12 @@
+
+$vCenters = 'Prod Server','DR Server'
+Set-PowerCLIConfiguration -DefaultVIServerMode Multiple -Confirm:$false
+connect-viserver -Server $vCenters
+
+$SolarWindsNodes = Invoke-Command -ComputerName pvbit-sql02 { Invoke-Sqlcmd -Query "select Caption,IP_Address from nodes" -ServerInstance SQLServer -Database SolarWindsOrion } | select Caption -Expand Caption
+
+$VMs = get-vm -server $vCenters | Where-Object {$_.PowerState -eq 'PoweredOn'} | select name -ExpandProperty name
+
+$object = Compare-Object -ReferenceObject $SolarwindsNodes -DifferenceObject $VMs | Where-Object {($_.sideindicator -eq '=>') -and ($_.InputObject -notmatch "Z-VRA-*") -and ($_.InputObject -notmatch "GigaVue*")} | Select-Object InputObject | sort InputObject | Format-table -AutoSize
+
+$object
